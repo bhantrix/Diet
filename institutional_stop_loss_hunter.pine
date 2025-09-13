@@ -1,0 +1,228 @@
+//@version=5
+indicator("Institutional Stop Loss Hunter", "ISL Hunter", overlay=true, max_boxes_count=500, max_lines_count=500)
+
+// ===== INPUT PARAMETERS =====
+// Zone Identification Settings
+sensitivity = input.int(14, "Zone Sensitivity", minval=5, maxval=50, 
+    tooltip="Higher values detect more zones but may include noise. Lower values detect only strong zones.")
+
+lookback_period = input.int(20, "Lookback Period", minval=10, maxval=100, 
+    tooltip="Number of bars to look back for identifying liquidity zones")
+
+min_zone_strength = input.float(0.6, "Minimum Zone Strength", minval=0.1, maxval=1.0, step=0.1,
+    tooltip="Minimum strength required for a zone to be displayed (0.1 = weak, 1.0 = strongest)")
+
+// Visual Settings
+show_zones = input.bool(true, "Show Hunt Zones", group="Visual Settings")
+show_labels = input.bool(true, "Show Zone Labels", group="Visual Settings")
+show_lines = input.bool(true, "Show Support/Resistance Lines", group="Visual Settings")
+
+// Color Settings
+bullish_zone_color = input.color(color.new(color.green, 80), "Bullish Zone Color", group="Colors")
+bearish_zone_color = input.color(color.new(color.red, 80), "Bearish Zone Color", group="Colors")
+neutral_zone_color = input.color(color.new(color.yellow, 80), "Neutral Zone Color", group="Colors")
+line_color = input.color(color.blue, "Support/Resistance Line Color", group="Colors")
+
+// Alert Settings
+enable_zone_alerts = input.bool(true, "Enable Zone Entry Alerts", group="Alerts")
+alert_message_prefix = input.string("SL Hunt Zone: ", "Alert Message Prefix", group="Alerts")
+
+// ===== CORE LOGIC =====
+
+// Function to calculate Average True Range for volatility assessment
+calc_atr(length) =>
+    ta.atr(length)
+
+// Function to identify potential stop loss clusters
+identify_liquidity_zones() =>
+    var float[] support_levels = array.new<float>()
+    var float[] resistance_levels = array.new<float>()
+    
+    // Clear old levels periodically to maintain performance
+    if bar_index % 100 == 0
+        array.clear(support_levels)
+        array.clear(resistance_levels)
+    
+    // Find significant highs and lows that could be stop loss levels
+    is_pivot_high = ta.pivothigh(high, sensitivity/2, sensitivity/2)
+    is_pivot_low = ta.pivotlow(low, sensitivity/2, sensitivity/2)
+    
+    // Add pivot points to respective arrays
+    if not na(is_pivot_high)
+        array.push(resistance_levels, is_pivot_high)
+        if array.size(resistance_levels) > 50  // Limit array size
+            array.shift(resistance_levels)
+    
+    if not na(is_pivot_low)
+        array.push(support_levels, is_pivot_low)
+        if array.size(support_levels) > 50  // Limit array size
+            array.shift(support_levels)
+    
+    [support_levels, resistance_levels]
+
+// Function to calculate zone strength based on multiple touches and volume
+calc_zone_strength(level, is_support) =>
+    touches = 0
+    volume_at_level = 0.0
+    atr_current = calc_atr(14)
+    
+    // Count how many times price has tested this level
+    for i = 1 to math.min(lookback_period, bar_index)
+        test_high = high[i]
+        test_low = low[i]
+        test_close = close[i]
+        test_volume = volume[i]
+        
+        // Check if price tested the level within ATR tolerance
+        tolerance = atr_current * 0.5
+        
+        if is_support
+            if test_low <= level + tolerance and test_low >= level - tolerance
+                touches += 1
+                volume_at_level += test_volume
+        else
+            if test_high >= level - tolerance and test_high <= level + tolerance
+                touches += 1
+                volume_at_level += test_volume
+    
+    // Normalize strength based on touches and relative volume
+    avg_volume = ta.sma(volume, lookback_period)
+    volume_factor = volume_at_level / (avg_volume * lookback_period)
+    
+    // Calculate final strength (0 to 1)
+    strength = math.min((touches * 0.3) + (volume_factor * 0.7), 1.0)
+    strength
+
+// Function to detect institutional stop hunting patterns
+detect_hunt_pattern(level, is_support) =>
+    atr_current = calc_atr(14)
+    hunt_detected = false
+    hunt_intensity = 0.0
+    
+    // Look for sharp moves through the level followed by quick reversal
+    for i = 1 to 5
+        if is_support
+            // Check for downward spike through support followed by recovery
+            spike_low = low[i]
+            recovery_close = close[i-1] if i > 1 else close
+            
+            if spike_low < level - (atr_current * 0.3) and recovery_close > level
+                hunt_detected := true
+                hunt_intensity := math.abs(spike_low - level) / atr_current
+        else
+            // Check for upward spike through resistance followed by rejection
+            spike_high = high[i]
+            rejection_close = close[i-1] if i > 1 else close
+            
+            if spike_high > level + (atr_current * 0.3) and rejection_close < level
+                hunt_detected := true
+                hunt_intensity := math.abs(spike_high - level) / atr_current
+    
+    [hunt_detected, hunt_intensity]
+
+// Main execution
+[support_levels, resistance_levels] = identify_liquidity_zones()
+
+// Process support levels
+if array.size(support_levels) > 0 and show_zones
+    for i = 0 to array.size(support_levels) - 1
+        level = array.get(support_levels, i)
+        strength = calc_zone_strength(level, true)
+        
+        if strength >= min_zone_strength
+            [hunt_detected, hunt_intensity] = detect_hunt_pattern(level, true)
+            
+            // Determine zone color based on hunt detection and market context
+            zone_color = bullish_zone_color
+            if hunt_detected and hunt_intensity > 1.5
+                zone_color := color.new(color.orange, 70)  // High hunting activity
+            
+            // Create zone visualization
+            if close[1] > level and close <= level  // Price entering zone from above
+                zone_box = box.new(bar_index - 10, level - calc_atr(14) * 0.2, 
+                                 bar_index + 10, level + calc_atr(14) * 0.2, 
+                                 border_color=color.new(zone_color, 0), 
+                                 bgcolor=zone_color, 
+                                 text="SL Hunt: " + str.tostring(math.round(strength * 100)) + "%",
+                                 text_color=color.white,
+                                 text_size=size.small)
+                
+                // Add support line
+                if show_lines
+                    line.new(bar_index - lookback_period, level, bar_index + 10, level, 
+                           color=line_color, width=2, style=line.style_dashed)
+                
+                // Trigger alert
+                if enable_zone_alerts
+                    alert(alert_message_prefix + "Support zone entered at " + str.tostring(level), 
+                          alert.freq_once_per_bar)
+
+// Process resistance levels
+if array.size(resistance_levels) > 0 and show_zones
+    for i = 0 to array.size(resistance_levels) - 1
+        level = array.get(resistance_levels, i)
+        strength = calc_zone_strength(level, false)
+        
+        if strength >= min_zone_strength
+            [hunt_detected, hunt_intensity] = detect_hunt_pattern(level, false)
+            
+            // Determine zone color based on hunt detection and market context
+            zone_color = bearish_zone_color
+            if hunt_detected and hunt_intensity > 1.5
+                zone_color := color.new(color.orange, 70)  // High hunting activity
+            
+            // Create zone visualization
+            if close[1] < level and close >= level  // Price entering zone from below
+                zone_box = box.new(bar_index - 10, level - calc_atr(14) * 0.2, 
+                                 bar_index + 10, level + calc_atr(14) * 0.2, 
+                                 border_color=color.new(zone_color, 0), 
+                                 bgcolor=zone_color, 
+                                 text="SL Hunt: " + str.tostring(math.round(strength * 100)) + "%",
+                                 text_color=color.white,
+                                 text_size=size.small)
+                
+                // Add resistance line
+                if show_lines
+                    line.new(bar_index - lookback_period, level, bar_index + 10, level, 
+                           color=line_color, width=2, style=line.style_dashed)
+                
+                // Trigger alert
+                if enable_zone_alerts
+                    alert(alert_message_prefix + "Resistance zone entered at " + str.tostring(level), 
+                          alert.freq_once_per_bar)
+
+// ===== ADDITIONAL FEATURES =====
+
+// Market structure analysis for enhanced zone detection
+higher_high = ta.pivothigh(high, 5, 5)
+higher_low = ta.pivotlow(low, 5, 5)
+lower_high = ta.pivothigh(high, 5, 5)
+lower_low = ta.pivotlow(low, 5, 5)
+
+// Trend detection to improve zone accuracy
+ema_fast = ta.ema(close, 20)
+ema_slow = ta.ema(close, 50)
+trend_bullish = ema_fast > ema_slow
+trend_bearish = ema_fast < ema_slow
+
+// Volume profile analysis for better liquidity zone identification
+volume_ma = ta.sma(volume, 20)
+high_volume = volume > volume_ma * 1.5
+
+// Performance optimization: limit calculations to visible bars
+if barstate.islast
+    // Summary statistics for the indicator
+    runtime.error("Institutional Stop Loss Hunter loaded successfully")
+
+// ===== PLOTTING =====
+
+// Plot EMAs for trend context (optional)
+plot_trend_emas = input.bool(false, "Show Trend EMAs", group="Additional Features")
+plot(plot_trend_emas ? ema_fast : na, "Fast EMA", color=color.blue, linewidth=1)
+plot(plot_trend_emas ? ema_slow : na, "Slow EMA", color=color.red, linewidth=1)
+
+// Background coloring for market sessions (optional)
+show_session_bg = input.bool(false, "Highlight Trading Sessions", group="Additional Features")
+session_color = show_session_bg and not na(time(timeframe.period, "0930-1600", "America/New_York")) ? 
+    color.new(color.gray, 95) : na
+bgcolor(session_color, title="NY Session")
