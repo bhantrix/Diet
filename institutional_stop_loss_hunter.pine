@@ -210,9 +210,7 @@ volume_ma = ta.sma(volume, 20)
 high_volume = volume > volume_ma * 1.5
 
 // Performance optimization: limit calculations to visible bars
-if barstate.islast
-    // Summary statistics for the indicator
-    runtime.error("Institutional Stop Loss Hunter loaded successfully")
+// Indicator is now loaded and ready to analyze zones
 
 // ===== PLOTTING =====
 

@@ -1,0 +1,64 @@
+//@version=5
+indicator("Simple Stop Loss Hunter", "Simple SL Hunter", overlay=true, max_boxes_count=100)
+
+// ===== SIMPLIFIED PARAMETERS =====
+sensitivity = input.int(10, "Sensitivity", minval=5, maxval=25, 
+    tooltip="Higher values = more zones detected")
+
+strength_filter = input.float(0.5, "Minimum Strength", minval=0.2, maxval=0.9, step=0.1,
+    tooltip="Minimum zone strength to display (0.2 = weak, 0.9 = very strong)")
+
+// Visual settings
+zone_color_bull = input.color(color.new(color.green, 75), "Support Zone Color")
+zone_color_bear = input.color(color.new(color.red, 75), "Resistance Zone Color")
+
+// ===== CORE LOGIC =====
+
+// Detect significant highs and lows
+pivot_high = ta.pivothigh(high, sensitivity, sensitivity)
+pivot_low = ta.pivotlow(low, sensitivity, sensitivity)
+
+// Calculate simple strength based on touches
+calc_simple_strength(level, bars_back) =>
+    touches = 0
+    atr_val = ta.atr(14)
+    tolerance = atr_val * 0.5
+    
+    for i = 1 to bars_back
+        if math.abs(low[i] - level) <= tolerance or math.abs(high[i] - level) <= tolerance
+            touches += 1
+    
+    math.min(touches / 3.0, 1.0)  // Normalize to 0-1
+
+// Create zones when pivot points are confirmed
+if not na(pivot_high)
+    strength = calc_simple_strength(pivot_high, 20)
+    if strength >= strength_filter
+        // Create resistance zone
+        zone_top = pivot_high + ta.atr(14) * 0.1
+        zone_bottom = pivot_high - ta.atr(14) * 0.1
+        
+        box.new(bar_index - 10, zone_bottom, bar_index + 20, zone_top, 
+               border_color=zone_color_bear, bgcolor=zone_color_bear,
+               text="Resistance " + str.tostring(math.round(strength * 100)) + "%",
+               text_color=color.white, text_size=size.small)
+
+if not na(pivot_low)
+    strength = calc_simple_strength(pivot_low, 20)
+    if strength >= strength_filter
+        // Create support zone
+        zone_top = pivot_low + ta.atr(14) * 0.1
+        zone_bottom = pivot_low - ta.atr(14) * 0.1
+        
+        box.new(bar_index - 10, zone_bottom, bar_index + 20, zone_top, 
+               border_color=zone_color_bull, bgcolor=zone_color_bull,
+               text="Support " + str.tostring(math.round(strength * 100)) + "%",
+               text_color=color.white, text_size=size.small)
+
+// Optional: Plot trend EMAs for context
+show_emas = input.bool(false, "Show Trend Lines")
+ema20 = ta.ema(close, 20)
+ema50 = ta.ema(close, 50)
+
+plot(show_emas ? ema20 : na, "Fast EMA", color=color.blue)
+plot(show_emas ? ema50 : na, "Slow EMA", color=color.red)
