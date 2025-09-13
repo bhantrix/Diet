@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vegetarian Muscle Building Diet Chart</title>
+    <title>Diet Chart & Fibonacci Trading Tool</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -99,6 +99,141 @@
             th, td {
                 padding: 4px;
             }
+        }
+        
+        /* Fibonacci Trading Tool Styles */
+        .trading-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .trading-header {
+            text-align: center;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .chart-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-weight: bold;
+            color: #333;
+        }
+        .control-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #1976D2;
+        }
+        .btn-secondary {
+            background: #FF9800;
+        }
+        .btn-secondary:hover {
+            background: #F57C00;
+        }
+        .fib-levels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .fib-level {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+        }
+        .fib-level h4 {
+            margin: 0 0 8px 0;
+            color: #2196F3;
+        }
+        .fib-level p {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .chart-container-trading {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .price-line {
+            fill: none;
+            stroke: #2196F3;
+            stroke-width: 2;
+        }
+        .fib-line {
+            stroke-width: 1;
+            stroke-dasharray: 5,5;
+        }
+        .fib-line.major {
+            stroke-width: 2;
+            stroke-dasharray: none;
+        }
+        .fib-label {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .chart-title {
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            background: #e3f2fd;
+            margin: 0;
+            border-radius: 6px 6px 0 0;
+        }
+        .status-message {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
     </style>
 </head>
@@ -332,5 +467,285 @@
             <li><strong>Adjustments:</strong> Increase portions if not gaining 0.5-1 kg per week</li>
         </ul>
     </div>
+
+    <!-- Fibonacci Trading Tool Section -->
+    <div class="trading-header">
+        <h1>📈 Fibonacci Retracement Trading Tool</h1>
+        <p>Identify potential support and resistance levels for trading decisions</p>
+    </div>
+
+    <div class="trading-section">
+        <div class="chart-controls">
+            <div class="control-group">
+                <label for="highPrice">High Price:</label>
+                <input type="number" id="highPrice" step="0.01" placeholder="Enter high price" value="100">
+            </div>
+            <div class="control-group">
+                <label for="lowPrice">Low Price:</label>
+                <input type="number" id="lowPrice" step="0.01" placeholder="Enter low price" value="80">
+            </div>
+            <div class="control-group">
+                <label for="currentPrice">Current Price:</label>
+                <input type="number" id="currentPrice" step="0.01" placeholder="Current price" value="90">
+            </div>
+            <button class="btn" onclick="calculateFibonacci()">Calculate Fibonacci Levels</button>
+            <button class="btn btn-secondary" onclick="generateRandomData()">Load Sample Data</button>
+        </div>
+
+        <div id="statusMessage"></div>
+
+        <div class="chart-container-trading">
+            <div class="chart-title">Price Chart with Fibonacci Retracements</div>
+            <svg id="fibonacciChart" class="chart-svg">
+                <!-- Chart will be dynamically generated here -->
+            </svg>
+        </div>
+
+        <div class="fib-levels" id="fibLevels">
+            <div class="fib-level">
+                <h4>0.0% (High)</h4>
+                <p id="level-0">$100.00</p>
+            </div>
+            <div class="fib-level">
+                <h4>23.6%</h4>
+                <p id="level-236">$95.28</p>
+            </div>
+            <div class="fib-level">
+                <h4>38.2%</h4>
+                <p id="level-382">$92.36</p>
+            </div>
+            <div class="fib-level">
+                <h4>50.0%</h4>
+                <p id="level-500">$90.00</p>
+            </div>
+            <div class="fib-level">
+                <h4>61.8%</h4>
+                <p id="level-618">$87.64</p>
+            </div>
+            <div class="fib-level">
+                <h4>100% (Low)</h4>
+                <p id="level-1000">$80.00</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLevels = {};
+        
+        function calculateFibonacci() {
+            const high = parseFloat(document.getElementById('highPrice').value);
+            const low = parseFloat(document.getElementById('lowPrice').value);
+            const current = parseFloat(document.getElementById('currentPrice').value);
+            
+            if (isNaN(high) || isNaN(low) || high <= low) {
+                showStatus('Please enter valid high and low prices (high > low)', 'error');
+                return;
+            }
+            
+            const range = high - low;
+            
+            // Calculate Fibonacci retracement levels
+            currentLevels = {
+                0: high, // 0.0%
+                236: high - (range * 0.236), // 23.6%
+                382: high - (range * 0.382), // 38.2%
+                500: high - (range * 0.500), // 50.0%
+                618: high - (range * 0.618), // 61.8%
+                1000: low // 100%
+            };
+            
+            // Update level displays
+            document.getElementById('level-0').textContent = '$' + currentLevels[0].toFixed(2);
+            document.getElementById('level-236').textContent = '$' + currentLevels[236].toFixed(2);
+            document.getElementById('level-382').textContent = '$' + currentLevels[382].toFixed(2);
+            document.getElementById('level-500').textContent = '$' + currentLevels[500].toFixed(2);
+            document.getElementById('level-618').textContent = '$' + currentLevels[618].toFixed(2);
+            document.getElementById('level-1000').textContent = '$' + currentLevels[1000].toFixed(2);
+            
+            showStatus('Fibonacci levels calculated successfully!', 'success');
+            
+            // Update chart
+            updateChart(currentLevels, current);
+        }
+        
+        function updateChart(levels, currentPrice) {
+            const svg = document.getElementById('fibonacciChart');
+            const width = svg.clientWidth || 800;
+            const height = svg.clientHeight || 350;
+            
+            // Clear existing content
+            svg.innerHTML = '';
+            
+            // Set SVG dimensions
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            
+            // Chart margins
+            const margin = { top: 20, right: 100, bottom: 40, left: 60 };
+            const chartWidth = width - margin.left - margin.right;
+            const chartHeight = height - margin.top - margin.bottom;
+            
+            // Price range for chart
+            const minPrice = levels[1000] * 0.98;
+            const maxPrice = levels[0] * 1.02;
+            
+            // Generate sample price data
+            const priceData = generatePriceData(levels[1000], levels[0], currentPrice, 30);
+            
+            // Create scales
+            const xScale = (index) => margin.left + (index * chartWidth) / (priceData.length - 1);
+            const yScale = (price) => margin.top + chartHeight - ((price - minPrice) / (maxPrice - minPrice)) * chartHeight;
+            
+            // Draw price line
+            let pathData = '';
+            priceData.forEach((price, index) => {
+                const x = xScale(index);
+                const y = yScale(price);
+                if (index === 0) {
+                    pathData += `M ${x} ${y}`;
+                } else {
+                    pathData += ` L ${x} ${y}`;
+                }
+            });
+            
+            const priceLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            priceLine.setAttribute('d', pathData);
+            priceLine.setAttribute('class', 'price-line');
+            svg.appendChild(priceLine);
+            
+            // Draw Fibonacci levels
+            const fibLevels = [
+                { key: 0, label: '0.0% (High)', color: '#f44336', major: true },
+                { key: 236, label: '23.6%', color: '#ff9800', major: false },
+                { key: 382, label: '38.2%', color: '#ffd700', major: false },
+                { key: 500, label: '50.0%', color: '#4caf50', major: true },
+                { key: 618, label: '61.8%', color: '#9c27b0', major: false },
+                { key: 1000, label: '100% (Low)', color: '#f44336', major: true }
+            ];
+            
+            fibLevels.forEach(level => {
+                const y = yScale(levels[level.key]);
+                
+                // Draw line
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', margin.left);
+                line.setAttribute('y1', y);
+                line.setAttribute('x2', margin.left + chartWidth);
+                line.setAttribute('y2', y);
+                line.setAttribute('stroke', level.color);
+                line.setAttribute('class', level.major ? 'fib-line major' : 'fib-line');
+                svg.appendChild(line);
+                
+                // Draw label
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', margin.left + chartWidth + 5);
+                text.setAttribute('y', y + 4);
+                text.setAttribute('class', 'fib-label');
+                text.setAttribute('fill', level.color);
+                text.textContent = `${level.label} $${levels[level.key].toFixed(2)}`;
+                svg.appendChild(text);
+            });
+            
+            // Draw current price indicator
+            const currentY = yScale(currentPrice);
+            const currentLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            currentLine.setAttribute('x1', margin.left);
+            currentLine.setAttribute('y1', currentY);
+            currentLine.setAttribute('x2', margin.left + chartWidth);
+            currentLine.setAttribute('y2', currentY);
+            currentLine.setAttribute('stroke', '#2196F3');
+            currentLine.setAttribute('stroke-width', '3');
+            currentLine.setAttribute('stroke-dasharray', '10,5');
+            svg.appendChild(currentLine);
+            
+            const currentLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            currentLabel.setAttribute('x', margin.left + chartWidth + 5);
+            currentLabel.setAttribute('y', currentY + 4);
+            currentLabel.setAttribute('class', 'fib-label');
+            currentLabel.setAttribute('fill', '#2196F3');
+            currentLabel.textContent = `Current: $${currentPrice.toFixed(2)}`;
+            svg.appendChild(currentLabel);
+            
+            // Draw Y-axis
+            const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            yAxis.setAttribute('x1', margin.left);
+            yAxis.setAttribute('y1', margin.top);
+            yAxis.setAttribute('x2', margin.left);
+            yAxis.setAttribute('y2', margin.top + chartHeight);
+            yAxis.setAttribute('stroke', '#666');
+            yAxis.setAttribute('stroke-width', '1');
+            svg.appendChild(yAxis);
+            
+            // Draw X-axis
+            const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            xAxis.setAttribute('x1', margin.left);
+            xAxis.setAttribute('y1', margin.top + chartHeight);
+            xAxis.setAttribute('x2', margin.left + chartWidth);
+            xAxis.setAttribute('y2', margin.top + chartHeight);
+            xAxis.setAttribute('stroke', '#666');
+            xAxis.setAttribute('stroke-width', '1');
+            svg.appendChild(xAxis);
+        }
+        
+        function generatePriceData(low, high, current, points) {
+            const data = [];
+            const range = high - low;
+            
+            for (let i = 0; i < points; i++) {
+                // Create realistic price movement
+                const progress = i / (points - 1);
+                const trend = Math.sin(progress * Math.PI * 2) * 0.2;
+                const noise = (Math.random() - 0.5) * 0.1;
+                
+                let basePrice;
+                if (i === points - 1) {
+                    basePrice = current;
+                } else {
+                    basePrice = low + range * (0.3 + trend + noise);
+                    basePrice = Math.max(low * 0.95, Math.min(high * 1.05, basePrice));
+                }
+                
+                data.push(basePrice);
+            }
+            
+            return data;
+        }
+        
+        function generateRandomData() {
+            const high = 80 + Math.random() * 40; // Random between 80-120
+            const low = high - (10 + Math.random() * 20); // 10-30 points below high
+            const current = low + (high - low) * Math.random();
+            
+            document.getElementById('highPrice').value = high.toFixed(2);
+            document.getElementById('lowPrice').value = low.toFixed(2);
+            document.getElementById('currentPrice').value = current.toFixed(2);
+            
+            calculateFibonacci();
+            showStatus('Sample trading data loaded!', 'info');
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.className = `status-message status-${type === 'error' ? 'info' : type}`;
+            statusDiv.textContent = message;
+            
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.className = '';
+            }, 3000);
+        }
+        
+        // Initialize with default values
+        document.addEventListener('DOMContentLoaded', function() {
+            calculateFibonacci();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (Object.keys(currentLevels).length > 0) {
+                const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+                updateChart(currentLevels, currentPrice);
+            }
+        });
+    </script>
 </body>
 </html>
